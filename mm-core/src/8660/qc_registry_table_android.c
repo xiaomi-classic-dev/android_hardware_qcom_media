@@ -59,6 +59,7 @@ omx_core_cb_type core[] =
       "video_decoder.avc"
     }
   },
+#ifndef QCOM_NO_SECURE_PLAYBACK
   {
     "OMX.qcom.video.decoder.avc.secure",
     NULL, // Create instance function
@@ -75,6 +76,7 @@ omx_core_cb_type core[] =
       "video_decoder.avc"
     }
   },
+#endif
   {
     "OMX.qcom.video.decoder.divx4",
     NULL,   // Create instance function
