@@ -3534,8 +3534,8 @@ OMX_ERRORTYPE  omx_video::empty_this_buffer_proxy(OMX_IN OMX_HANDLETYPE         
           if(media_buffer->meta_handle == NULL) {
             met_error = true;
           }
-          else if((media_buffer->meta_handle->numFds != 1 &&
-                   media_buffer->meta_handle->numInts != 2))
+          else if(media_buffer->meta_handle->numFds != 1 ||
+                  media_buffer->meta_handle->numInts < 2)
           {
             met_error = true;
           }
