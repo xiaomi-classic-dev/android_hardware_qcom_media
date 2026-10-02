@@ -1347,6 +1347,16 @@ OMX_ERRORTYPE omx_vdec::component_init(OMX_STRING role)
   int r;
   OMX_STRING device_name = (OMX_STRING)"/dev/msm_vidc_dec";
 
+#ifdef QCOM_NO_SECURE_PLAYBACK
+  // Reject direct requests too, before opening the secure VIDC device or
+  // broadcasting SECURE_START on products whose firmware cannot protect ION.
+  if (!strncmp(role, "OMX.qcom.video.decoder.avc.secure", OMX_MAX_STRINGNAME_SIZE) ||
+      !strncmp(role, "OMX.qcom.video.decoder.mpeg2.secure", OMX_MAX_STRINGNAME_SIZE)) {
+      DEBUG_PRINT_ERROR("Secure playback is disabled for this product");
+      return OMX_ErrorUnsupportedSetting;
+  }
+#endif
+
   if(!strncmp(role, "OMX.qcom.video.decoder.avc.secure",OMX_MAX_STRINGNAME_SIZE)){
       secure_mode = true;
       arbitrary_bytes = false;
