@@ -314,6 +314,8 @@ public:
 
   pthread_t msg_thread_id;
   pthread_t async_thread_id;
+  bool msg_thread_started;
+  bool async_thread_started;
 
   OMX_U8 m_nkind[128];
 
