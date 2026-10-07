@@ -259,6 +259,12 @@ omx_video::omx_video(): m_state(OMX_StateInvalid),
                         secure_session(false)
 {
   DEBUG_PRINT_HIGH("\n omx_video(): Inside Constructor()");
+  m_pipe_in = -1;
+  m_pipe_out = -1;
+  msg_thread_id = 0;
+  async_thread_id = 0;
+  msg_thread_started = false;
+  async_thread_started = false;
   memset(&m_cmp,0,sizeof(m_cmp));
   memset(&m_pCallbacks,0,sizeof(m_pCallbacks));
   secure_color_format = (int) OMX_COLOR_FormatYUV420SemiPlanar;
@@ -303,12 +309,12 @@ omx_video::~omx_video()
 {
   DEBUG_PRINT_HIGH("In OMX Venc Destructor() for instance = %d",
      m_venc_num_instances);
-  if(m_pipe_in) close(m_pipe_in);
-  if(m_pipe_out) close(m_pipe_out);
+  if(m_pipe_out >= 0) close(m_pipe_out);
   DEBUG_PRINT_HIGH("omx_video: Waiting on Msg Thread exit\n");
-  pthread_join(msg_thread_id,NULL);
+  if(msg_thread_started) pthread_join(msg_thread_id,NULL);
+  if(m_pipe_in >= 0) close(m_pipe_in);
   DEBUG_PRINT_HIGH("omx_video: Waiting on Async Thread exit\n");
-  pthread_join(async_thread_id,NULL);
+  if(async_thread_started) pthread_join(async_thread_id,NULL);
   pthread_mutex_destroy(&m_lock);
   sem_destroy(&m_cmd_lock);
 
