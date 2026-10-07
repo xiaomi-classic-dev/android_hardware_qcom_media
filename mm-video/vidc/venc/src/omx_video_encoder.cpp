@@ -159,6 +159,9 @@ OMX_ERRORTYPE omx_venc::component_init(OMX_STRING role)
   if(handle->venc_open(codec_type) != true)
   {
     DEBUG_PRINT_ERROR("\nERROR: venc_open failed");
+    handle->venc_close();
+    delete handle;
+    handle = NULL;
     return OMX_ErrorInsufficientResources;
   }
 
@@ -428,34 +431,32 @@ OMX_ERRORTYPE omx_venc::component_init(OMX_STRING role)
     }
     else
     {
-      if(fds[0] == 0 || fds[1] == 0)
-      {
-        if(pipe(fds))
-        {
-          DEBUG_PRINT_ERROR("ERROR: pipe creation failed\n");
-          eRet = OMX_ErrorInsufficientResources;
-        }
-      }
-      if(eRet == OMX_ErrorNone)
-      {
-        m_pipe_in = fds[0];
-        m_pipe_out = fds[1];
-      }
+      m_pipe_in = fds[0];
+      m_pipe_out = fds[1];
     }
-    r = pthread_create(&msg_thread_id,0,message_thread,this);
-
-    if(r < 0)
+    if(eRet == OMX_ErrorNone)
     {
-      eRet = OMX_ErrorInsufficientResources;
-    }
-    else
-    {
-      r = pthread_create(&async_thread_id,0,async_venc_message_thread,this);
-      if(r < 0)
+      r = pthread_create(&msg_thread_id,0,message_thread,this);
+      if(r != 0)
       {
         eRet = OMX_ErrorInsufficientResources;
       }
+      else
+      {
+        msg_thread_started = true;
+        r = pthread_create(&async_thread_id,0,async_venc_message_thread,this);
+        if(r != 0)
+          eRet = OMX_ErrorInsufficientResources;
+        else
+          async_thread_started = true;
+      }
     }
+  }
+  if(eRet != OMX_ErrorNone)
+  {
+    handle->venc_close();
+    delete handle;
+    handle = NULL;
   }
   DEBUG_PRINT_HIGH("\n Component_init return value = 0x%x", eRet);
   return eRet;
