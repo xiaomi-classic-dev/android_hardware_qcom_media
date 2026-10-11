@@ -39,6 +39,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //////////////////////////////////////////////////////////////////////////////
 
 #include <string.h>
+#include <stdint.h>
 #include "omx_video_base.h"
 #include <stdlib.h>
 #include <errno.h>
@@ -4201,18 +4202,38 @@ OMX_ERRORTYPE omx_video::fill_buffer_done(OMX_HANDLETYPE hComp,
   return OMX_ErrorNone;
 }
 
+static int buffer_header_index(const OMX_BUFFERHEADERTYPE *buffer,
+                               const OMX_BUFFERHEADERTYPE *pool,
+                               OMX_U32 count)
+{
+  if (!buffer || !pool || !count)
+    return -1;
+
+  uintptr_t address = reinterpret_cast<uintptr_t>(buffer);
+  uintptr_t base = reinterpret_cast<uintptr_t>(pool);
+  if (address < base)
+    return -1;
+
+  uintptr_t offset = address - base;
+  if (offset % sizeof(*pool))
+    return -1;
+
+  uintptr_t index = offset / sizeof(*pool);
+  return index < count ? static_cast<int>(index) : -1;
+}
+
 OMX_ERRORTYPE omx_video::empty_buffer_done(OMX_HANDLETYPE         hComp,
                                            OMX_BUFFERHEADERTYPE* buffer)
 {
   int buffer_index  = -1;
   int buffer_index_meta = -1;
 
-  buffer_index = (buffer - m_inp_mem_ptr);
-  buffer_index_meta = (buffer - meta_buffer_hdr);
+  buffer_index = buffer_header_index(buffer, m_inp_mem_ptr,
+                                    m_sInPortDef.nBufferCountActual);
+  buffer_index_meta = buffer_header_index(buffer, meta_buffer_hdr,
+                                         m_sInPortDef.nBufferCountActual);
   DEBUG_PRINT_LOW("\n empty_buffer_done: buffer[%p]", buffer);
-  if(buffer == NULL ||
-     ((buffer_index > (int)m_sInPortDef.nBufferCountActual) &&
-      (buffer_index_meta > (int)m_sInPortDef.nBufferCountActual)))
+  if(buffer_index < 0 && buffer_index_meta < 0)
   {
     DEBUG_PRINT_ERROR("\n ERROR in empty_buffer_done due to index buffer");
     return OMX_ErrorBadParameter;
@@ -4220,7 +4241,7 @@ OMX_ERRORTYPE omx_video::empty_buffer_done(OMX_HANDLETYPE         hComp,
 
   pending_input_buffers--;
 
-  if(mUseProxyColorFormat && (buffer_index < (int)m_sInPortDef.nBufferCountActual)) {
+  if(mUseProxyColorFormat && buffer_index >= 0) {
     if(!pdest_frame && !input_flush_progress) {
       pdest_frame = buffer;
       DEBUG_PRINT_LOW("\n empty_buffer_done pdest_frame address is %p",pdest_frame);
